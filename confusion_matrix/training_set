@@ -1,0 +1,41 @@
+#training set
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import confusion_matrix, classification_report, ConfusionMatrixDisplay
+import matplotlib.pyplot as plt
+
+# Load the dataset
+df = pd.read_csv('/weather_classification_data (1).csv')
+
+# Features selected based on ANOVA results
+selected_features = ['Temperature', 'Humidity', 'Wind Speed', 'Precipitation (%)']  # Replace with your selected features
+target = 'Weather Type'  # Target variable
+
+# Split the data into training and testing sets
+X = df[selected_features]
+y = df[target]
+X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.4, random_state=42)  # 60% train
+X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=42)  # 20% validation, 20% test
+
+# Train a classification model
+model = RandomForestClassifier(random_state=42)
+model.fit(X_train, y_train)
+
+# Make predictions on the training set
+y_train_pred = model.predict(X_train)
+
+# Generate the confusion matrix
+cm_train = confusion_matrix(y_train, y_train_pred)
+print("Confusion Matrix - Training Set:")
+print(cm_train)
+
+# Display the classification report
+print("\nClassification Report - Training Set:")
+print(classification_report(y_train, y_train_pred))
+
+# Visualize the confusion matrix
+disp_train = ConfusionMatrixDisplay(confusion_matrix=cm_train, display_labels=model.classes_)
+disp_train.plot(cmap=plt.cm.Blues)
+plt.title("Confusion Matrix - Training Set")
+plt.show()
