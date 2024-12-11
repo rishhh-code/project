@@ -1,57 +1,45 @@
 import pandas as pd
-import numpy as np
-from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.preprocessing import LabelEncoder
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report, accuracy_score, confusion_matrix, ConfusionMatrixDisplay
+from sklearn.preprocessing import LabelEncoder  # Import LabelEncoder
 import matplotlib.pyplot as plt
-df = pd.read_csv('/weather_classification_data (1).csv')  
 
+# Load your dataset
+data = pd.read_csv('/weather_classification_data (1).csv')  # Replace with your dataset file path
 
-target = 'Weather Type'  # Target variable
-selected_features = df.columns.drop(target)  # Exclude the target variable from the features
+# Separate features and target variable
+X = data.drop('Season', axis=1)  # Replace 'Weather_Type' with your target column
+y = data['Weather Type']
 
 # Initialize LabelEncoder
 label_encoder = LabelEncoder()
 
-# Convert categorical features to numerical using Label Encoding
-for feature in selected_features:
-    if df[feature].dtype == 'object':  # Check if the feature is categorical (object type)
-        df[feature] = label_encoder.fit_transform(df[feature])
+# Iterate through columns and apply Label Encoding to object (string) types
+for col in X.select_dtypes(include=['object']).columns:
+    X[col] = label_encoder.fit_transform(X[col])
 
-# Split the data into training and testing sets
-X = df[selected_features]
-y = df[target]
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+# Split data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Train a classification model
-model = RandomForestClassifier(random_state=42)
+# Train a Random Forest Classifier
+model = RandomForestClassifier(n_estimators=100, random_state=42)
 model.fit(X_train, y_train)
 
-# Compute feature importance scores
-feature_importances = model.feature_importances_
+# Make predictions
+y_pred = model.predict(X_test)
 
-# Create a DataFrame to map features to their importance scores
-importance_df = pd.DataFrame({
-    'Feature': selected_features,
-    'Importance Score': feature_importances
-}).sort_values(by='Importance Score', ascending=False)
+# Accuracy Score
+accuracy = accuracy_score(y_test, y_pred)
+print(f"Accuracy: {accuracy:.2f}")
 
-# Get top 40 features (adjust if there are fewer than 40)
-top_40_features = importance_df.head(40)
+# Classification Report
+print("\nClassification Report:")
+print(classification_report(y_test, y_pred))
 
-# Visualize the top 40 features and their importance scores
-plt.figure(figsize=(12, 10))
-bars = plt.barh(top_40_features['Feature'], top_40_features['Importance Score'], color='steelblue')
-plt.xlabel('Importance Score')
-plt.ylabel('Features')
-plt.title('Top Features Contributing to the Classification')
-
-# Add text labels to each bar
-for bar, score in zip(bars, top_40_features['Importance Score']):
-    plt.text(bar.get_width(), bar.get_y() + bar.get_height()/2, f'{score:.6f}', va='center')
-
-plt.gca().invert_yaxis()  # Invert y-axis for descending order
-plt.tight_layout()
+# Confusion Matrix
+cm = confusion_matrix(y_test, y_pred)
+disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=model.classes_)
+disp.plot(cmap=plt.cm.Blues)
+plt.title("Confusion Matrix")
 plt.show()
-
-
