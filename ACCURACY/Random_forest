@@ -1,0 +1,57 @@
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import LabelEncoder
+import matplotlib.pyplot as plt
+df = pd.read_csv('/weather_classification_data (1).csv')  
+
+
+target = 'Weather Type'  # Target variable
+selected_features = df.columns.drop(target)  # Exclude the target variable from the features
+
+# Initialize LabelEncoder
+label_encoder = LabelEncoder()
+
+# Convert categorical features to numerical using Label Encoding
+for feature in selected_features:
+    if df[feature].dtype == 'object':  # Check if the feature is categorical (object type)
+        df[feature] = label_encoder.fit_transform(df[feature])
+
+# Split the data into training and testing sets
+X = df[selected_features]
+y = df[target]
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+
+# Train a classification model
+model = RandomForestClassifier(random_state=42)
+model.fit(X_train, y_train)
+
+# Compute feature importance scores
+feature_importances = model.feature_importances_
+
+# Create a DataFrame to map features to their importance scores
+importance_df = pd.DataFrame({
+    'Feature': selected_features,
+    'Importance Score': feature_importances
+}).sort_values(by='Importance Score', ascending=False)
+
+# Get top 40 features (adjust if there are fewer than 40)
+top_40_features = importance_df.head(40)
+
+# Visualize the top 40 features and their importance scores
+plt.figure(figsize=(12, 10))
+bars = plt.barh(top_40_features['Feature'], top_40_features['Importance Score'], color='steelblue')
+plt.xlabel('Importance Score')
+plt.ylabel('Features')
+plt.title('Top Features Contributing to the Classification')
+
+# Add text labels to each bar
+for bar, score in zip(bars, top_40_features['Importance Score']):
+    plt.text(bar.get_width(), bar.get_y() + bar.get_height()/2, f'{score:.6f}', va='center')
+
+plt.gca().invert_yaxis()  # Invert y-axis for descending order
+plt.tight_layout()
+plt.show()
+
+
