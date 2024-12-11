@@ -1,0 +1,48 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+import matplotlib.pyplot as plt
+
+
+data = pd.read_csv('/content/weather_classification_data (1).csv')  
+
+# Define target and features
+target = 'Weather Type'  # Replace with your target column name
+features = [col for col in data.columns if col != target]
+X = data[features]
+y = data[target]
+
+# Encode the target variable if it is categorical
+label_encoder = LabelEncoder()
+if y.dtype == 'object':
+    y = label_encoder.fit_transform(y)
+
+# Encode categorical features and scale numeric features
+X_encoded = pd.get_dummies(X.select_dtypes(include=['object']))
+X_numeric = X.select_dtypes(exclude=['object'])
+scaler = StandardScaler()
+X_numeric_scaled = scaler.fit_transform(X_numeric)
+X = pd.concat([pd.DataFrame(X_numeric_scaled, columns=X_numeric.columns), X_encoded.reset_index(drop=True)], axis=1)
+
+# Split data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# K-Nearest Neighbors Model
+knn_model = KNeighborsClassifier(n_neighbors=5)
+knn_model.fit(X_train, y_train)
+
+# Predict on the test set
+y_pred = knn_model.predict(X_test)
+
+# Display classification report
+print("Classification Report:")
+print(classification_report(y_test, y_pred))
+
+# Display confusion matrix
+cm = confusion_matrix(y_test, y_pred, labels=sorted(set(y_test) | set(y_pred)))
+disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=label_encoder.inverse_transform(sorted(set(y_test) | set(y_pred))))
+disp.plot(cmap=plt.cm.Blues)
+plt.title("Confusion Matrix - K-Nearest Neighbors")
+plt.show()
