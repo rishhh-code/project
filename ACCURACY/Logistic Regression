@@ -1,0 +1,60 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+import matplotlib.pyplot as plt
+
+# Load the dataset
+data = pd.read_csv('/content/weather_classification_data (1).csv')  # Replace with your dataset path
+
+# Define target and features
+target = 'Weather Type'  # Replace with your actual target column name
+if target not in data.columns:
+    raise ValueError(f"Target column '{target}' not found in dataset!")
+
+features = [col for col in data.columns if col != target]
+X = data[features].copy()
+y = data[target].copy()
+
+# Check for missing values and fill if necessary
+for col in X.select_dtypes(include=['float64', 'int64']).columns:
+    X.loc[:, col] = X[col].fillna(X[col].mean())
+for col in X.select_dtypes(include=['object']).columns:
+    X.loc[:, col] = X[col].fillna(X[col].mode()[0])
+y = y.fillna(y.mode()[0])
+
+# Encode categorical variables
+label_encoder = LabelEncoder()
+for col in X.select_dtypes(include=['object']).columns:
+    X.loc[:, col] = label_encoder.fit_transform(X[col])
+
+# Scale numerical features
+scaler = StandardScaler()
+numerical_cols = X.select_dtypes(include=['float64', 'int64']).columns
+X.loc[:, numerical_cols] = scaler.fit_transform(X[numerical_cols])
+
+# Encode the target variable if it's categorical
+if y.dtypes == 'object':
+    y = label_encoder.fit_transform(y)
+
+# Split data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Logistic Regression Model
+logistic_model = LogisticRegression(random_state=42, max_iter=1000)
+logistic_model.fit(X_train, y_train)
+
+# Predict on the test set
+y_pred = logistic_model.predict(X_test)
+
+# Display classification report
+print("Classification Report:")
+print(classification_report(y_test, y_pred))
+
+# Display confusion matrix
+cm = confusion_matrix(y_test, y_pred, labels=logistic_model.classes_)
+disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=logistic_model.classes_)
+disp.plot(cmap=plt.cm.Blues)
+plt.title("Confusion Matrix - Logistic Regression")
+plt.show()
